@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Silkscreen Xpress - BOM & Costing Calculator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #121212;
+            color: #e0e0e0;
+            margin: 0;
+            padding: 10px;
+        }
+        .container {
+            max-width: 450px;
+            margin: 0 auto;
+            background: #1e1e1e;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        }
+        h2 {
+            text-align: center;
+            font-size: 15px;
+            background: #212121;
+            color: #ffffff;
+            padding: 8px;
+            margin-top: 0;
+            border-radius: 4px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 10px;
+        }
+        th, td {
+            padding: 4px;
+            text-align: center;
+            font-size: 11px;
+        }
+        th {
+            background: #333;
+            color: #fff;
+        }
+        input[type="text"], input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 4px;
+            font-size: 11px;
+            background: #2a2a2a;
+            border: 1px solid #444;
+            color: #fff;
+            border-radius: 3px;
+        }
+        .text-left { text-align: left; }
+        .text-right { text-align: right; }
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            color: #4caf50;
+        }
+        .input-group {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            font-size: 12px;
+        }
+        .input-group input {
+            width: 120px;
+        }
+        .summary-box {
+            background: #212121;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            line-height: 1.5;
+            border-left: 4px solid #4caf50;
+        }
+        hr {
+            border: 0;
+            border-top: 1px solid #444;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>BILL OF MATERIALS & COSTING SHEET</h2>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 8%;">No</th>
+                <th style="width: 32%;" class="text-left">Description</th>
+                <th style="width: 15%;">Unit</th>
+                <th style="width: 10%;">Qty</th>
+                <th style="width: 15%;">Cost</th>
+                <th style="width: 20%;">Tot(15%)</th>
+            </tr>
+        </thead>
+        <tbody id="bom-table">
+            <!-- Dynamic Rows will be injected here via JS -->
+        </tbody>
+    </table>
+
+    <div class="input-group" style="font-weight: bold;">
+        <span>SUBTOTAL (w/ 15%):</span>
+        <span id="subtotal-display" style="color: #4caf50;">₱0.00</span>
+    </div>
+
+    <hr>
+
+    <div class="section-title">PROJECT SETTINGS</div>
+    <div class="input-group">
+        <span>Project Total Qty (Pcs):</span>
+        <input type="number" id="proj-qty" value="" oninput="calculate()">
+    </div>
+    <div class="input-group">
+        <span>Delivery Fee (₱):</span>
+        <input type="number" id="delivery" value="" oninput="calculate()">
+    </div>
+    <div class="input-group">
+        <span>Labor Cost (₱):</span>
+        <input type="number" id="labor" value="" oninput="calculate()">
+    </div>
+    <div class="input-group">
+        <span>Profit Margin (%):</span>
+        <input type="number" id="profit-margin" value="" oninput="calculate()">
+    </div>
+
+    <hr>
+
+    <div class="section-title">SUMMARY & QUOTATION</div>
+    <div class="summary-box" id="summary-output">
+        Calculated values will appear here...
+    </div>
+</div>
+
+<script>
+    const initialItems = [
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" },
+        { desc: "", unit: "", qty: "", cost: "" }
+    ];
+
+    const tbody = document.getElementById("bom-table");
+
+    initialItems.forEach((item, index) => {
+        let tr = document.createElement("tr");
+        tr.innerHTML = `
+            <td>${index + 1}</td>
+            <td><input type="text" class="desc" value="${item.desc}"></td>
+            <td><input type="text" class="unit" value="${item.unit}"></td>
+            <td><input type="number" class="qty" value="${item.qty}" oninput="calculate()"></td>
+            <td><input type="number" class="cost" value="${item.cost}" oninput="calculate()"></td>
+            <td class="text-right tot15" style="padding-right: 5px;">0.00</td>
+        `;
+        tbody.appendChild(tr);
+    });
+
+    function calculate() {
+        let rows = document.querySelectorAll("#bom-table tr");
+        let sumTotal = 0;
+        let sumTotal15 = 0;
+
+        rows.forEach(row => {
+            let qty = parseFloat(row.querySelector(".qty").value) || 0;
+            let cost = parseFloat(row.querySelector(".cost").value) || 0;
+            let baseTot = qty * cost;
+            let tot15 = baseTot * 1.15;
+
+            sumTotal += baseTot;
+            sumTotal15 += tot15;
+
+            row.querySelector(".tot15").innerText = baseTot > 0 ? tot15.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2}) : "0.00";
+        });
+
+        document.getElementById("subtotal-display").innerText = "₱" + sumTotal15.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+
+        let projQty = parseFloat(document.getElementById("proj-qty").value) || 1;
+        let delivery = parseFloat(document.getElementById("delivery").value) || 0;
+        let labor = parseFloat(document.getElementById("labor").value) || 0;
+        let profitPct = (parseFloat(document.getElementById("profit-margin").value) || 0) / 100;
+
+        let profitAmount = sumTotal15 * profitPct;
+        let grandTotal = sumTotal15 + profitAmount + delivery + labor;
+        let perPiece = projQty > 0 ? grandTotal / projQty : 0;
+
+        let summaryText = `
+            Total Materials (Base): ₱${sumTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
+            Total w/ 15% Allowance: ₱${sumTotal15.toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
+            Profit (${(profitPct*100)}%): ₱${profitAmount.toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
+            Delivery: ₱${delivery.toLocaleString('en-US', {minimumFractionDigits: 2})} | Labor: ₱${labor.toLocaleString('en-US', {minimumFractionDigits: 2})}<br>
+            -----------------------------------------<br>
+            <b>GRAND TOTAL: ₱${grandTotal.toLocaleString('en-US', {minimumFractionDigits: 2})}</b><br>
+            <b>PROJECT QTY: ${projQty} pcs | PRICE/PC: ₱${perPiece.toLocaleString('en-US', {minimumFractionDigits: 2})}</b>
+        `;
+        document.getElementById("summary-output").innerHTML = summaryText;
+    }
+
+    // Run initial calculation
+    calculate();
+</script>
+
+</body>
+</html>
